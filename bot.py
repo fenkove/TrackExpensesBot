@@ -1,5 +1,6 @@
 import telebot
 import config
+import db_helper
 import markups as m
 import pymongo
 
@@ -8,10 +9,28 @@ amount = 0
 category = ""
 desription = ""
 datetime = ""
+categories = []
 
 @app.message_handler(commands=['start'])
 def start_message(message):
+    # load_categories()
     app.send_message(message.chat.id, "Select action", reply_markup=m.keyboard_start)
+
+@app.message_handler(commands=['help'])
+def show_help(message):
+    info = get_categories_info()
+    app.send_message(message.chat.id, info, reply_markup=m.keyboard_start)
+
+
+def get_categories_info():
+    categories_info = ""
+    client = db_helper.prepare_db_client()
+    mydb = client[config.DB_NAME]
+    mycol = mydb[config.DB_CATEGORIES_TABLE]
+    mydoc = mycol.find()
+    for x in mydoc:
+        categories_info = categories_info + x['category'] + ": " + x['description'] + "\n";
+    return categories_info
 
 @app.message_handler(commands=['submit'])
 def submit_expense(message):
@@ -21,7 +40,14 @@ def submit_expense(message):
 def get_amount(message):
     global amount
     amount = int(message.text)
-    app.send_message(message.chat.id, 'Select category', reply_markup=m.keyboard_categories)
+    app.send_message(message.chat.id, 'Add comment')
+    app.register_next_step_handler(message, get_comment)
+
+def get_comment(message):
+    global desription
+    desription = str(message.text)
+    categories_keyboard = m.generate_categories_keyboard()
+    app.send_message(message.chat.id, 'Select category', reply_markup=categories_keyboard)
     app.register_next_step_handler(message, get_category)
 
 def get_category(message):
@@ -44,13 +70,13 @@ def prepare_record(amount, category, description):
     return record
 
 def check_record(message, record):
-    app.send_message(message.chat.id, f'Amount: {str(record["amount"])} UAH\nCategory: {record["category"]}', reply_markup=m.keyboard_save)
+    app.send_message(message.chat.id, f'Amount: {str(record["amount"])} UAH\nCategory: {record["category"]}\nComment: {record["description"]}', reply_markup=m.keyboard_save)
 
 @app.message_handler(commands=['save'])
 def save_record(message):
-    client = prepare_db_client()
+    client = db_helper.prepare_db_client()
     mydb = client[config.DB_NAME]
-    mycol = mydb[config.DB_TABLE]
+    mycol = mydb[config.DB_MAIN_TABLE]
     record = prepare_record(amount,category,desription)
     x = mycol.insert_one(record)
     if x:
@@ -58,13 +84,10 @@ def save_record(message):
 
     app.send_message(message.chat.id, 'SAVED', reply_markup=m.keyboard_start)
 
-def prepare_db_client():
-    return pymongo.MongoClient(config.MONGO_DB_URL)
-
 def get_report(period):
-    client = prepare_db_client()
+    client = db_helper.prepare_db_client()
     mydb = client[config.DB_NAME]
-    mycol = mydb[config.DB_TABLE]
+    mycol = mydb[config.DB_MAIN_TABLE]
     myquery = {"Description": "Novus"}
     mydoc = mycol.find(myquery)
     for x in mydoc:
@@ -80,8 +103,8 @@ def send_text(message):
         submit_expense(message)
     elif message.text.lower() == 'report':
         app.send_message(message.chat.id, 'Reports are not ready yet', reply_markup=m.keyboard_start)
-    elif message.text.lower() == 'settings':
-        app.send_message(message.chat.id, 'Settings are not ready yet', reply_markup=m.keyboard_start)
+    elif message.text.lower() == 'help':
+        show_help(message)
     else:
         app.send_message(message.chat.id, 'Ти чьо ахуєл пьос?', reply_markup=m.keyboard_start)
 

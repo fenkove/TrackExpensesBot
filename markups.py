@@ -1,10 +1,10 @@
 from telebot import types
-import config
-import telebot
-import pymongo
 import db_helper
 
 
+keyboard_report = types.ReplyKeyboardMarkup(True,True)
+keyboard_report.row('Last month', 'This month')
+keyboard_report.row('Last year', 'This year')
 
 keyboard_start = types.ReplyKeyboardMarkup(True,True)
 keyboard_start.row('Help', 'Report', 'Submit Expense')
@@ -13,12 +13,9 @@ keyboard_save = types.ReplyKeyboardMarkup(True,True)
 keyboard_save.row('/cancel', '/save')
 
 
-
 categories = []
 def load_categories():
-    client = db_helper.prepare_db_client()
-    mydb = client[config.DB_NAME]
-    mycol = mydb[config.DB_CATEGORIES_TABLE]
+    mycol = db_helper.prepare_categories_collection()
     mydoc = mycol.find()
     for x in mydoc:
         categories.append(x['category'])

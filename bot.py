@@ -2,7 +2,7 @@ import telebot
 import config
 import db_helper
 import markups as m
-import pymongo
+import reports as r
 
 app = telebot.TeleBot(config.TOKEN)
 amount = 0
@@ -24,9 +24,7 @@ def show_help(message):
 
 def get_categories_info():
     categories_info = ""
-    client = db_helper.prepare_db_client()
-    mydb = client[config.DB_NAME]
-    mycol = mydb[config.DB_CATEGORIES_TABLE]
+    mycol = db_helper.prepare_categories_collection()
     mydoc = mycol.find()
     for x in mydoc:
         categories_info = categories_info + x['category'] + ": " + x['description'] + "\n";
@@ -80,26 +78,14 @@ def save_record(message):
     if (amount == 0 or category == ""):
         print("Cannot save empty values")
     else:
-        client = db_helper.prepare_db_client()
-        mydb = client[config.DB_NAME]
-        mycol = mydb[config.DB_MAIN_TABLE]
+        mycol = db_helper.prepare_main_collection()
         record = prepare_record(amount,category,desription)
         x = mycol.insert_one(record)
         if x:
             print("Record has been saved successfully with ID: "+str(x.inserted_id))
             app.send_message(message.chat.id, 'SAVED', reply_markup=m.keyboard_start)
 
-
-def get_report(period):
-    client = db_helper.prepare_db_client()
-    mydb = client[config.DB_NAME]
-    mycol = mydb[config.DB_MAIN_TABLE]
-    myquery = {"Description": "Novus"}
-    mydoc = mycol.find(myquery)
-    for x in mydoc:
-        print(x)
-
-def keep_privat(message, my_id):
+def keep_private(message, my_id):
     if str(message.chat.id) != my_id:
         message.text = "alien"
         return message
@@ -108,17 +94,21 @@ def keep_privat(message, my_id):
 def save_record(message):
     app.send_message(message.chat.id, 'NOT SAVED', reply_markup=m.keyboard_start)
 
+
 @app.message_handler(content_types=['text'])
 def send_text(message):
-    print("CHAT ID: " + str(message.chat.id))
-    keep_privat(message, config.CHAT_ID)
-    if message.text.lower() == 'submit expense':
+    keep_private(message, config.CHAT_ID)
+    request = message.text.lower()
+    if request == 'submit expense':
         submit_expense(message)
-    elif message.text.lower() == 'report':
-        app.send_message(message.chat.id, 'Reports are not ready yet', reply_markup=m.keyboard_start)
-    elif message.text.lower() == 'help':
+    elif request == 'report':
+        app.send_message(message.chat.id, 'Choose a period', reply_markup=m.keyboard_report)
+    elif request in ('this month', 'last month', 'this year', 'last year'):
+        spent_amount = r.total_spent_per(request)
+        app.send_message(message.chat.id, f"Total spent per {request}: {str(spent_amount)} UAH", reply_markup=m.keyboard_start)
+    elif request == 'help':
         show_help(message)
-    elif message.text.lower() == 'alien':
+    elif request == 'alien':
         app.send_message(message.chat.id, 'Sorry, this bot is for private use only', reply_markup=m.keyboard_start)
     else:
         app.send_message(message.chat.id, "I don't understand you", reply_markup=m.keyboard_start)

@@ -21,7 +21,18 @@ def load_categories():
         categories.append(x['category'])
     return tuple(categories)
 
+
+def load_categories_sqlite():
+    categories = []
+    cursor = db_helper.prepare_categories_table()
+    sql = "SELECT category FROM categories"
+    for row in cursor.execute(sql):
+        categories.append(row[0])
+    return tuple(categories)
+
+
 cats = load_categories()
+
 
 def generate_categories_keyboard():
     keyboard_categories = types.ReplyKeyboardMarkup(True,True)

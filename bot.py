@@ -11,10 +11,12 @@ description = ""
 datetime = ""
 categories = []
 
+
 @app.message_handler(commands=['start'])
 def start_message(message):
     # load_categories()
     app.send_message(message.chat.id, "Select action", reply_markup=m.keyboard_start)
+
 
 @app.message_handler(commands=['help'])
 def show_help(message):
@@ -30,6 +32,7 @@ def get_categories_info():
         categories_info = categories_info + x['category'] + ": " + x['description'] + "\n";
     return categories_info
 
+
 @app.message_handler(commands=['submit'])
 def submit_expense(message):
     app.send_message(message.chat.id, 'Enter amount')
@@ -42,7 +45,7 @@ def get_amount(message):
         amount = int(message.text)
         app.send_message(message.chat.id, 'Add comment')
         app.register_next_step_handler(message, get_comment)
-    except:
+    except ValueError:
         app.send_message(message.chat.id, 'Must be an integer value')
         start_message(message)
 
@@ -53,6 +56,7 @@ def get_comment(message):
     categories_keyboard = m.generate_categories_keyboard()
     app.send_message(message.chat.id, 'Select category', reply_markup=categories_keyboard)
     app.register_next_step_handler(message, get_category)
+
 
 def get_category(message):
     global category
@@ -66,12 +70,13 @@ def prepare_record(amount, category, description):
     import datetime
 
     now = datetime.datetime.now()
-    week = now.strftime("%W")
-    year = now.strftime("%Y")
-    month = now.strftime("%m")
-    datetime = now.strftime("%x")
-
-    record = {"amount": amount, "category": category, "description": description, "date": datetime, "week": week, "month": month, "year": year}
+    record = {"amount": amount,
+              "category": category,
+              "description": description,
+              "date": now.strftime("%x"),
+              "week": now.strftime("%W"),
+              "month": now.strftime("%m"),
+              "year": now.strftime("%Y")}
     return record
 
 def check_record(message, record):
@@ -82,7 +87,7 @@ def check_record(message, record):
 
 @app.message_handler(commands=['save'])
 def save_record(message):
-    if (amount == 0 or category == ""):
+    if amount == 0 or category == "":
         print("Cannot save empty values")
     else:
         mycol = db_helper.prepare_main_collection()

@@ -35,11 +35,17 @@ def submit_expense(message):
     app.send_message(message.chat.id, 'Enter amount')
     app.register_next_step_handler(message, get_amount)
 
+
 def get_amount(message):
     global amount
-    amount = int(message.text)
-    app.send_message(message.chat.id, 'Add comment')
-    app.register_next_step_handler(message, get_comment)
+    try:
+        amount = int(message.text)
+        app.send_message(message.chat.id, 'Add comment')
+        app.register_next_step_handler(message, get_comment)
+    except:
+        app.send_message(message.chat.id, 'Must be an integer value')
+        start_message(message)
+
 
 def get_comment(message):
     global desription

@@ -7,7 +7,7 @@ import reports as r
 app = telebot.TeleBot(config.TOKEN)
 amount = 0
 category = ""
-desription = ""
+description = ""
 datetime = ""
 categories = []
 
@@ -48,8 +48,8 @@ def get_amount(message):
 
 
 def get_comment(message):
-    global desription
-    desription = str(message.text)
+    global description
+    description = str(message.text)
     categories_keyboard = m.generate_categories_keyboard()
     app.send_message(message.chat.id, 'Select category', reply_markup=categories_keyboard)
     app.register_next_step_handler(message, get_category)
@@ -58,8 +58,9 @@ def get_category(message):
     global category
     category = message.text
     app.send_message(message.chat.id, 'Check record', reply_markup=m.keyboard_save)
-    record = prepare_record(amount,category,desription)
+    record = prepare_record(amount, category, description)
     check_record(message, record)
+
 
 def prepare_record(amount, category, description):
     import datetime
@@ -85,7 +86,7 @@ def save_record(message):
         print("Cannot save empty values")
     else:
         mycol = db_helper.prepare_main_collection()
-        record = prepare_record(amount,category,desription)
+        record = prepare_record(amount, category, description)
         x = mycol.insert_one(record)
         if x:
             print("Record has been saved successfully with ID: "+str(x.inserted_id))

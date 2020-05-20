@@ -31,7 +31,7 @@ def load_categories_sqlite():
     return tuple(categories)
 
 
-cats = load_categories()
+cats = load_categories_sqlite()
 
 
 def generate_categories_keyboard():

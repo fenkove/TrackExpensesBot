@@ -1,8 +1,12 @@
+# - *- coding: utf- 8 - *-
+
+import sqlite3
 import telebot
 import config
 import db_helper
 import markups as m
 import reports as r
+from config import *
 
 app = telebot.TeleBot(config.TOKEN)
 amount = 0
@@ -20,18 +24,17 @@ def start_message(message):
 
 @app.message_handler(commands=['help'])
 def show_help(message):
-    info = get_categories_info()
+    info = get_categories_info_sql()
     app.send_message(message.chat.id, info, reply_markup=m.keyboard_start)
 
 
-def get_categories_info():
+def get_categories_info_sql():
     categories_info = ""
-    mycol = db_helper.prepare_categories_collection()
-    mydoc = mycol.find()
-    for x in mydoc:
-        categories_info = categories_info + x['category'] + ": " + x['description'] + "\n";
+    cursor = db_helper.prepare_categories_table()
+    sql = "SELECT category, description FROM categories"
+    for row in cursor.execute(sql):
+        categories_info = categories_info + row[0] + ": " + row[1] + "\n"
     return categories_info
-
 
 @app.message_handler(commands=['submit'])
 def submit_expense(message):
@@ -70,19 +73,19 @@ def prepare_record(amount, category, description):
     import datetime
 
     now = datetime.datetime.now()
-    record = {"amount": amount,
-              "category": category,
-              "description": description,
-              "date": now.strftime("%x"),
-              "week": now.strftime("%W"),
-              "month": now.strftime("%m"),
-              "year": now.strftime("%Y")}
+    record = (amount,
+               category,
+               description,
+               now.strftime("%x"),
+               now.strftime("%W"),
+               now.strftime("%m"),
+               now.strftime("%Y"))
     return record
 
 def check_record(message, record):
     if config.DB_MAIN_TABLE == "test":
         app.send_message(message.chat.id, 'this is test record')
-    app.send_message(message.chat.id, f'Amount: {str(record["amount"])} UAH\nCategory: {record["category"]}\nComment: {record["description"]}', reply_markup=m.keyboard_save)
+    app.send_message(message.chat.id, f'Amount: {str(record[0])} UAH\nCategory: {record[1]}\nComment: {record[2]}', reply_markup=m.keyboard_save)
 
 
 @app.message_handler(commands=['save'])
@@ -90,12 +93,20 @@ def save_record(message):
     if amount == 0 or category == "":
         print("Cannot save empty values")
     else:
-        mycol = db_helper.prepare_main_collection()
+        connection = db_helper.prepare_sqlite_connection()
+        cursor = connection.cursor()
         record = prepare_record(amount, category, description)
-        x = mycol.insert_one(record)
-        if x:
-            print("Record has been saved successfully with ID: "+str(x.inserted_id))
+
+        try:
+            cursor.execute(f"INSERT INTO {EXPENSES_TABLE} VALUES (?,?,?,?,?,?,?)", record)
+            connection.commit()
+            print("Record has been saved successfully with ID: " + str(cursor.lastrowid))
             app.send_message(message.chat.id, 'SAVED', reply_markup=m.keyboard_start)
+        except sqlite3.OperationalError:
+            print("Record not saved due to operational error")
+            app.send_message(message.chat.id, 'NOT SAVED', reply_markup=m.keyboard_start)
+        finally:
+            connection.close()
 
 def keep_private(message, my_id):
     if str(message.chat.id) != my_id:

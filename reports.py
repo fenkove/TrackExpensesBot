@@ -1,30 +1,35 @@
 import db_helper
 import datetime
+from config import *
 
 
 def total_spent_per(period):
-    mycoll = db_helper.prepare_main_collection()
     month = datetime.datetime.now().month
     year = datetime.datetime.now().year
-    myquery = {}
 
     if period == "this month":
-        myquery = {"month": "0" + str(month)}
+        period = "month"
+        value = month
     elif period == "last month":
-        myquery = {"month": "0" + str(month - 1)}
+        period = "month"
+        value = month-1
     elif period == "this year":
-        myquery = {"year": str(year)}
+        period = "year"
+        value = year
     elif period == "last year":
-        myquery = {"year": str(year - 1)}
+        period = "year"
+        value = year-1
     else:
         print("Invalid period value")
-    amount = get_total_spent_by_period(mycoll, myquery)
+    amount = get_total_spent_by_period(period, value)
     return amount
 
 
-def get_total_spent_by_period(mycoll, myquery):
+def get_total_spent_by_period(period, value):
+    connection = db_helper.prepare_sqlite_connection()
+    cursor = connection.cursor()
+    sql = f"SELECT amount FROM {EXPENSES_TABLE} WHERE {period} = {value}"
     amount = 0
-    results = mycoll.find(myquery)
-    for x in results:
-        amount += int(x['amount'])
+    for row in cursor.execute(sql):
+        amount += row[0]
     return amount

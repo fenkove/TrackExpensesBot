@@ -13,6 +13,10 @@ def prepare_categories_collection():
     return mydb[config.DB_CATEGORIES_TABLE]
 
 #sqlite3
+def prepare_sqlite_connection():
+    return sqlite3.connect(config.SQLITE3_DB_NAME)
+
+
 def prepare_categories_table():
     conn = sqlite3.connect(config.SQLITE3_DB_NAME)  # или :memory: чтобы сохранить в RAM
     return conn.cursor()

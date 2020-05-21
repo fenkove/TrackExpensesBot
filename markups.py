@@ -13,16 +13,7 @@ keyboard_save = types.ReplyKeyboardMarkup(True,True)
 keyboard_save.row('/cancel', '/save')
 
 
-categories = []
-def load_categories():
-    mycol = db_helper.prepare_categories_collection()
-    mydoc = mycol.find()
-    for x in mydoc:
-        categories.append(x['category'])
-    return tuple(categories)
-
-
-def load_categories_sqlite():
+def load_categories_from_db():
     categories = []
     cursor = db_helper.prepare_categories_table()
     sql = "SELECT category FROM categories"
@@ -31,10 +22,8 @@ def load_categories_sqlite():
     return tuple(categories)
 
 
-cats = load_categories_sqlite()
-
-
 def generate_categories_keyboard():
+    cats = load_categories_from_db()
     keyboard_categories = types.ReplyKeyboardMarkup(True,True)
     x = 0
     y = 3

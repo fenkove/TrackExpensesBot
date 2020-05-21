@@ -18,7 +18,6 @@ categories = []
 
 @app.message_handler(commands=['start'])
 def start_message(message):
-    # load_categories()
     app.send_message(message.chat.id, "Select action", reply_markup=m.keyboard_start)
 
 
@@ -31,7 +30,7 @@ def show_help(message):
 def get_categories_info_sql():
     categories_info = ""
     cursor = db_helper.prepare_categories_table()
-    sql = "SELECT category, description FROM categories"
+    sql = f"SELECT category, description FROM {CATEGORIES_TABLE}"
     for row in cursor.execute(sql):
         categories_info = categories_info + row[0] + ": " + row[1] + "\n"
     return categories_info
@@ -108,10 +107,12 @@ def save_record(message):
         finally:
             connection.close()
 
+
 def keep_private(message, my_id):
     if str(message.chat.id) != my_id:
         message.text = "alien"
         return message
+
 
 @app.message_handler(commands=['cancel'])
 def save_record(message):
